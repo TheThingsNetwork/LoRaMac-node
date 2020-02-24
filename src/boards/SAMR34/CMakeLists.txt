@@ -16,7 +16,7 @@
 ## Authors:  Johannes Bruder (STACKFORCE), Miguel Luis (Semtech) and 
 ##           Marten Lootsma(TWTG) on behalf of Microchip/Atmel (c)2017
 ##
-project(SAML21)
+project(SAMR34)
 cmake_minimum_required(VERSION 3.6)
 enable_language(ASM)
 
