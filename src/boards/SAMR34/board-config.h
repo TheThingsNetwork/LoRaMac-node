@@ -45,40 +45,32 @@ extern "C"
 /*!
  * Defines the time required for the TCXO to wakeup [ms].
  */
-#define BOARD_TCXO_WAKEUP_TIME                      0
+#define BOARD_TCXO_WAKEUP_TIME                      5
 
 /*!
  * Board MCU pins definitions
  */
 
-#define RADIO_RESET                                 GPIO( GPIO_PORTA, 10 )
+#define RADIO_RESET                                 GPIO( GPIO_PORTB, 15 )
+#define TCXO_PWR_PIN                                GPIO( GPIO_PORTA, 9 )
+#define RF_SWITCH_PIN                               GPIO( GPIO_PORTA, 13 )
 
-#define RADIO_MOSI                                  GPIO( GPIO_PORTB, 22 )
-#define RADIO_MISO                                  GPIO( GPIO_PORTB, 16 )
-#define RADIO_SCLK                                  GPIO( GPIO_PORTB, 23 )
-#define RADIO_NSS                                   GPIO( GPIO_PORTA, 17 )
+#define RADIO_MOSI                                  GPIO( GPIO_PORTB, 30 )
+#define RADIO_MISO                                  GPIO( GPIO_PORTC, 19 )
+#define RADIO_SCLK                                  GPIO( GPIO_PORTC, 18 )
+#define RADIO_NSS                                   GPIO( GPIO_PORTB, 31 )
 
-#define RADIO_DIO_0                                 GPIO( GPIO_PORTA, 20 )
-#define RADIO_DIO_1                                 GPIO( GPIO_PORTA, 21 )
-#define RADIO_DIO_2                                 GPIO( GPIO_PORTB, 12 )
-#define RADIO_DIO_3                                 GPIO( GPIO_PORTB, 13 )
-#define RADIO_DIO_4                                 GPIO( GPIO_PORTB, 14 )
-#define RADIO_DIO_5                                 GPIO( GPIO_PORTB, 15 )
+#define RADIO_DIO_0                                 GPIO( GPIO_PORTB, 16 )
+#define RADIO_DIO_1                                 GPIO( GPIO_PORTA, 11 )
+#define RADIO_DIO_2                                 GPIO( GPIO_PORTA, 12 )
+#define RADIO_DIO_3                                 GPIO( GPIO_PORTB, 17 )
 
-#define LED_1                                       GPIO( GPIO_PORTB, 10 )
+#define LED_1                                       GPIO( GPIO_PORTA, 19 )
 
-#define UART_TX                                     GPIO( GPIO_PORTA, 22 )
-#define UART_RX                                     GPIO( GPIO_PORTA, 23 )
-
-// Debug pins definition.
-#define RADIO_DBG_PIN_TX                            GPIO( GPIO_PORTB,  0 )
-#define RADIO_DBG_PIN_RX                            GPIO( GPIO_PORTB,  1 )
-
-#define RTC_DBG_PIN_0                               GPIO( GPIO_PORTB, 10 )
-#define RTC_DBG_PIN_1                               GPIO( GPIO_PORTB, 11 )
-
-#define HWTMR_DBG_PIN_0                             GPIO( GPIO_PORTB, 30 )
-
+#define UART_TX                                     GPIO( GPIO_PORTA, 4 )
+#define UART_RX                                     GPIO( GPIO_PORTA, 5 )
+#define I2C_SDA                                     GPIO( GPIO_PORTA, 16 )
+#define I2C_SCL                                     GPIO( GPIO_PORTA, 17 )
 #ifdef __cplusplus
 }
 #endif
