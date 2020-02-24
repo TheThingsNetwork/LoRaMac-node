@@ -23,13 +23,27 @@ cmake_minimum_required(VERSION 3.6)
 #---------------------------------------------------------------------------------------
 
 file(GLOB ${PROJECT_NAME}_SOURCES "*.c"
-                                  "soft-se/*.c")
+                                #   "soft-se/*.c"
+                                  "atecc608a-tnglora-se/*.c"
+                                  "cryptoauthlib/lib/*.c"
+                                  "cryptoauthlib/lib/basic/*.c"
+                                  "cryptoauthlib/lib/crypto/*.c"
+                                  "cryptoauthlib/lib/crypto/hashes/*.c"
+                                  "cryptoauthlib/lib/hal/atca_hal.c"
+                                  "cryptoauthlib/lib/host/*.c")
 
 add_library(${PROJECT_NAME} OBJECT EXCLUDE_FROM_ALL ${${PROJECT_NAME}_SOURCES})
 
 target_include_directories( ${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/soft-se
+    ${CMAKE_CURRENT_SOURCE_DIR}/atecc608a-tnglora-se
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib/basic
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib/crypto
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib/crypto/hashes
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib/hal
+    ${CMAKE_CURRENT_SOURCE_DIR}/cryptoauthlib/lib/host
     $<TARGET_PROPERTY:board,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:system,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:mac,INTERFACE_INCLUDE_DIRECTORIES>
