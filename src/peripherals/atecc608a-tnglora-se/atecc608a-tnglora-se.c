@@ -18,7 +18,6 @@
  * Todo: clean up this file before PR, add more checks for status, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
  * Todo: add status checks for atca calls, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
  * Todo: add SE derivation for multicast keys, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
- * Todo: handle dev and join-euis readings from SE slots, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
  * Todo: use the secure element random generators, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
  * @copyright Copyright (c) 2020 The Things Industries B.V.
  *
@@ -31,20 +30,27 @@
 #include "atca_devtypes.h"
 
 #define NUM_OF_KEYS 10
-#define KEY_SIZE 16
 
-#define TNGLORA_NWK_KEY_SLOT 0
-#define TNGLORA_APP_KEY_SLOT 0
-#define TNGLORA_APP_S_KEY_SLOT 2
-#define TNGLORA_NWK_S_ENC_KEY_SLOT 3
-#define TNGLORA_S_NWK_S_INT_KEY_SLOT 4
-#define TNGLORA_F_NWK_S_INT_KEY_SLOT 5
-#define TNGLORA_J_S_INT_KEY_SLOT 6
-#define TNGLORA_J_S_ENC_KEY_SLOT 7
-#define TNGLORA_MC_APP_S_KEY_0_SLOT 11
-#define TNGLORA_MC_NWK_S_KEY_0_SLOT 12
-#define TNGLORA_APP_KEY_BLOCK_INDEX 1
-#define TNGLORA_REMAINING_KEYS_BLOCK_INDEX 0
+#define DEV_EUI_SIZE_BYTE 8U
+#define DEV_EUI_ASCII_SIZE_BYTE 16U
+#define JOIN_EUI_SIZE_BYTE 8U
+
+#define TNGLORA_NWK_KEY_SLOT 0U
+#define TNGLORA_APP_KEY_SLOT 0U
+#define TNGLORA_APP_S_KEY_SLOT 2U
+#define TNGLORA_NWK_S_ENC_KEY_SLOT 3U
+#define TNGLORA_S_NWK_S_INT_KEY_SLOT 4U
+#define TNGLORA_F_NWK_S_INT_KEY_SLOT 5U
+#define TNGLORA_J_S_INT_KEY_SLOT 6U
+#define TNGLORA_J_S_ENC_KEY_SLOT 7U
+#define TNGLORA_JOIN_EUI_SLOT 9U
+#define TNGLORA_DEV_EUI_SLOT 10U
+#define TNGLORA_MC_APP_S_KEY_0_SLOT 11U
+#define TNGLORA_MC_NWK_S_KEY_0_SLOT 12U
+#define TNGLORA_APP_KEY_BLOCK_INDEX 1U
+#define TNGLORA_REMAINING_KEYS_BLOCK_INDEX 0U
+
+#define TNGLORA_USE_SE_EUI 1 //Configure to 0 to allow setting other DEV/JOIN EUIs
 
 /*!
  * Identifier value pair type for Keys
@@ -77,11 +83,11 @@ typedef struct sSecureElementNvCtx
     /*
      * DevEUI storage
      */
-    uint8_t DevEui[SE_EUI_SIZE];
+    uint8_t DevEui[DEV_EUI_SIZE_BYTE];
     /*
      * Join EUI storage
      */
-    uint8_t JoinEui[SE_EUI_SIZE];
+    uint8_t JoinEui[JOIN_EUI_SIZE_BYTE];
     /*
      * CMAC computation context variable
      */
@@ -99,6 +105,99 @@ static SecureElementNvCtx_t SeNvmCtx;
 static ATCAIfaceCfg atecc608_i2c_config;
 
 static SecureElementNvmEvent SeNvmCtxChanged;
+
+static ATCA_STATUS convert_ascii_devEUI(uint8_t *devEUI_ascii, uint8_t *devEUI);
+
+static ATCA_STATUS atcab_read_joinEUI(uint8_t *joinEUI)
+{
+    ATCA_STATUS status = ATCA_GEN_FAIL;
+    uint8_t read_buf[ATCA_BLOCK_SIZE];
+
+    if (!joinEUI)
+    {
+        return ATCA_BAD_PARAM;
+    }
+
+    do
+    {
+        if ((status = atcab_read_zone(ATCA_ZONE_DATA, TNGLORA_JOIN_EUI_SLOT, 0, 0, read_buf, ATCA_BLOCK_SIZE)) != ATCA_SUCCESS)
+        {
+            break;
+        }
+        memcpy(&joinEUI[0], &read_buf[0], JOIN_EUI_SIZE_BYTE);
+    } while (0);
+
+    return status;
+}
+
+static ATCA_STATUS atcab_read_ascii_devEUI(uint8_t *devEUI_ascii)
+{
+    ATCA_STATUS status = ATCA_GEN_FAIL;
+    uint8_t read_buf[ATCA_BLOCK_SIZE];
+
+    if (!devEUI_ascii)
+    {
+        return ATCA_BAD_PARAM;
+    }
+
+    do
+    {
+        if ((status = atcab_read_zone(ATCA_ZONE_DATA, TNGLORA_DEV_EUI_SLOT, 0, 0, read_buf, ATCA_BLOCK_SIZE)) != ATCA_SUCCESS)
+        {
+            break;
+        }
+        memcpy(&devEUI_ascii[0], &read_buf[0], DEV_EUI_ASCII_SIZE_BYTE);
+    } while (0);
+
+    return status;
+}
+
+static ATCA_STATUS convert_ascii_devEUI(uint8_t *devEUI_ascii, uint8_t *devEUI)
+{
+    for (size_t pos = 0; pos < DEV_EUI_ASCII_SIZE_BYTE; pos += 2)
+    {
+        uint8_t temp = 0;
+        if (devEUI_ascii[pos] >= '0' && devEUI_ascii[pos] <= '9')
+        {
+            temp = (devEUI_ascii[pos] - '0') << 4;
+        }
+        else if (devEUI_ascii[pos] >= 'A' && devEUI_ascii[pos] <= 'F')
+        {
+            temp = ((devEUI_ascii[pos] - 'A') + 10) << 4;
+        }
+        else
+        {
+            return ATCA_BAD_PARAM;
+        }
+        if (devEUI_ascii[pos + 1] >= '0' && devEUI_ascii[pos + 1] <= '9')
+        {
+            temp |= devEUI_ascii[pos + 1] - '0';
+        }
+        else if (devEUI_ascii[pos + 1] >= 'A' && devEUI_ascii[pos + 1] <= 'F')
+        {
+            temp |= (devEUI_ascii[pos + 1] - 'A') + 10;
+        }
+        else
+        {
+            return ATCA_BAD_PARAM;
+        }
+        devEUI[pos / 2] = temp;
+    }
+    return ATCA_SUCCESS;
+}
+
+static ATCA_STATUS atcab_read_devEUI(uint8_t *devEUI)
+{
+    ATCA_STATUS status = ATCA_GEN_FAIL;
+    uint8_t devEUI_ascii[DEV_EUI_ASCII_SIZE_BYTE];
+    status = atcab_read_ascii_devEUI(devEUI_ascii);
+    if (status != ATCA_SUCCESS)
+    {
+        return status;
+    }
+    status = convert_ascii_devEUI(devEUI_ascii, devEUI);
+    return status;
+}
 
 /*
  * Gets key item from key list.
@@ -232,10 +331,19 @@ SecureElementStatus_t SecureElementInit(SecureElementNvmEvent seNvmCtxChanged)
     atecc608_i2c_config.rx_retries = 20;
     atecc608_i2c_config.wake_delay = 1500U;
 
-    atcab_init(&atecc608_i2c_config);
+    if (atcab_init(&atecc608_i2c_config) != ATCA_SUCCESS)
+    {
+        return SECURE_ELEMENT_ERROR;
+    }
 
-    memset1(SeNvmCtx.DevEui, 0, SE_EUI_SIZE);
-    memset1(SeNvmCtx.JoinEui, 0, SE_EUI_SIZE);
+    if (atcab_read_devEUI(SeNvmCtx.DevEui) != ATCA_SUCCESS)
+    {
+        return SECURE_ELEMENT_ERROR;
+    }
+    if (atcab_read_joinEUI(SeNvmCtx.JoinEui) != ATCA_SUCCESS)
+    {
+        return SECURE_ELEMENT_ERROR;
+    }
 
     // Assign callback
     if (seNvmCtxChanged != 0)
@@ -402,15 +510,24 @@ SecureElementStatus_t SecureElementRandomNumber(uint32_t *randomNum)
     *randomNum = Radio.Random(); //Todo: use the secure element random generators
     return SECURE_ELEMENT_SUCCESS;
 }
-SecureElementStatus_t SecureElementSetDevEui(uint8_t *devEui) //Todo: handle dev and join-euis readings from SE slots
+SecureElementStatus_t SecureElementSetDevEui(uint8_t *devEui)
 {
+#if (TNGLORA_USE_SE_EUI == 1)
+    if (atcab_read_devEUI(SeNvmCtx.DevEui) != ATCA_SUCCESS)
+    {
+        return SECURE_ELEMENT_ERROR;
+    }
+    SeNvmCtxChanged();
+    return SECURE_ELEMENT_SUCCESS;
+#else
     if (devEui == NULL)
     {
         return SECURE_ELEMENT_ERROR_NPE;
     }
-    memcpy1(SeNvmCtx.DevEui, devEui, SE_EUI_SIZE);
+    memcpy1(SeNvmCtx.DevEui, devEui, DEV_EUI_SIZE_BYTE);
     SeNvmCtxChanged();
     return SECURE_ELEMENT_SUCCESS;
+#endif
 }
 uint8_t *SecureElementGetDevEui(void)
 {
@@ -418,13 +535,22 @@ uint8_t *SecureElementGetDevEui(void)
 }
 SecureElementStatus_t SecureElementSetJoinEui(uint8_t *joinEui)
 {
+#if (TNGLORA_USE_SE_EUI == 1)
+    if (atcab_read_joinEUI(SeNvmCtx.JoinEui) != ATCA_SUCCESS)
+    {
+        return SECURE_ELEMENT_ERROR;
+    }
+    SeNvmCtxChanged();
+    return SECURE_ELEMENT_SUCCESS;
+#else
     if (joinEui == NULL)
     {
         return SECURE_ELEMENT_ERROR_NPE;
     }
-    memcpy1(SeNvmCtx.JoinEui, joinEui, SE_EUI_SIZE);
+    memcpy1(SeNvmCtx.JoinEui, joinEui, JOIN_EUI_SIZE_BYTE);
     SeNvmCtxChanged();
     return SECURE_ELEMENT_SUCCESS;
+#endif
 }
 uint8_t *SecureElementGetJoinEui(void)
 {
