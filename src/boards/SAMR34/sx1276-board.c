@@ -195,16 +195,8 @@ void SX1276IoTcxoInit( void )
 
 void SX1276SetBoardTcxo( uint8_t state )
 {
-    if( state == true )
-    {
         GpioWrite( &tcxo_pin, state );
         DelayMs( BOARD_TCXO_WAKEUP_TIME );
-    }
-    else
-    {
-        GpioWrite( &tcxo_pin, state );
-        DelayMs( BOARD_TCXO_WAKEUP_TIME );
-    }
 }
 
 uint32_t SX1276GetBoardTcxoWakeupTime( void )
@@ -306,8 +298,7 @@ static uint8_t SX1276GetPaSelect( uint32_t channel )
 void SX1276SetAntSwLowPower( bool status )
 {
     // Control the TCXO and Antenna switch
-    SX1276SetBoardTcxo(!status);
-    GpioWrite( &rfswitch_pin, !status);
+    //TODO: handle low power by controlling TCXO and rfswitch_pin, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
     if( RadioIsActive != status )
     {
         RadioIsActive = status;
@@ -316,7 +307,8 @@ void SX1276SetAntSwLowPower( bool status )
 
 void SX1276SetAntSw( uint8_t opMode )
 {
-    GpioWrite( &rfswitch_pin, opMode ); // RF_OPMODE_SLEEP is 0
+    //TODO: handle low power by controlling TCXO and rfswitch_pin, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
+    //GpioWrite( &rfswitch_pin, opMode ); // RF_OPMODE_SLEEP is 0
 }
 
 bool SX1276CheckRfFrequency( uint32_t frequency )
