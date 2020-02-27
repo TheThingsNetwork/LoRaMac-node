@@ -45,7 +45,7 @@ extern "C"
 /*!
  * Defines the time required for the TCXO to wakeup [ms].
  */
-#define BOARD_TCXO_WAKEUP_TIME                      5
+#define BOARD_TCXO_WAKEUP_TIME                      1
 
 /*!
  * Board MCU pins definitions

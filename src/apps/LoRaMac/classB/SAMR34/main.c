@@ -1299,7 +1299,7 @@ int main( void )
 
 #endif
                 mibReq.Type = MIB_SYSTEM_MAX_RX_ERROR;
-                mibReq.Param.SystemMaxRxError = 20;
+                mibReq.Param.SystemMaxRxError = 100;
                 LoRaMacMibSetRequestConfirm( &mibReq );
 
                 LoRaMacStart( );
