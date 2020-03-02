@@ -8,6 +8,13 @@
 /* Included device support */
 #define ATCA_ATECC608A_SUPPORT
 
+/* ATECC608A I2C bus configuration */ 
+#define ATCA_HAL_ATECC608A_I2C_FREQUENCY 100000U
+#define ATCA_HAL_ATECC608A_I2C_BUS_PINS 2U
+#define ATCA_HAL_ATECC608A_I2C_ADDRESS 0x59U
+#define ATCA_HAL_ATECC608A_I2C_RX_RETRIES 20
+#define ATCA_HAL_ATECC608A_I2C_WAKEUP_DELAY 1500U
+
 /* \brief How long to wait after an initial wake failure for the POST to
  *         complete.
  * If Power-on self test (POST) is enabled, the self test will run on waking

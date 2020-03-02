@@ -16,8 +16,6 @@
 /**
  * @file hal_LoraMacNode.c
  * Todo: Implement general purpose LMN hal init, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
- * Todo: Fix constant slave addressing, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
- * Todo: Fix warnings, see https://github.com/TheThingsIndustries/lorawan-example-atecc608a-tnglora/issues/4
  * @copyright Copyright (c) 2020 The Things Industries B.V.
  *
  */
@@ -131,7 +129,7 @@ ATCA_STATUS hal_i2c_send(ATCAIface iface, uint8_t *txdata, int txlength)
 
     txdata[0] = 0x3;
     txlength++;
-    if (I2cMcuWriteBuffer((I2c_t *)NULL, 0x59U, 0, txdata, (size_t)txlength) == 1)
+    if (I2cMcuWriteBuffer((I2c_t *)NULL, iface->mIfaceCFG->atcai2c.slave_address, 0, txdata, (size_t)txlength) == 1)
     {
         return ATCA_SUCCESS;
     }
@@ -154,12 +152,12 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
     // 1. read 1 byte, this will be the length of the package
     // 2. read the rest of the package
 
-    char lengthPackage[1] = {0};
+    uint8_t lengthPackage[1] = {0};
     int r = -1;
-    int retries = 20;
+    int retries = iface->mIfaceCFG->rx_retries;
     while (--retries > 0 && r != 1)
     {
-        r = I2cMcuReadBuffer((I2c_t *)NULL, 0x59U, 0, lengthPackage, 1);
+        r = I2cMcuReadBuffer((I2c_t *)NULL, iface->mIfaceCFG->atcai2c.slave_address, 0, lengthPackage, 1);
     }
 
     if (r != 1)
@@ -179,10 +177,10 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
     rxdata[0] = lengthPackage[0];
 
     r = -1;
-    retries = 20;
+    retries = iface->mIfaceCFG->rx_retries;
     while (--retries > 0 && r != 1)
     {
-        r = I2cMcuReadBuffer((I2c_t *)NULL, 0x59U, 0, rxdata + 1, bytesToRead);
+        r = I2cMcuReadBuffer((I2c_t *)NULL, iface->mIfaceCFG->atcai2c.slave_address, 0, rxdata + 1, bytesToRead);
     }
 
     if (r != 1)
@@ -202,7 +200,7 @@ ATCA_STATUS hal_i2c_receive(ATCAIface iface, uint8_t *rxdata, uint16_t *rxlength
 
 void change_i2c_speed(ATCAIface iface, uint32_t speed)
 {
-    return ATCA_SUCCESS;
+    return;
 }
 
 /** @brief wake up CryptoAuth device using I2C bus 
@@ -213,21 +211,20 @@ void change_i2c_speed(ATCAIface iface, uint32_t speed)
 ATCA_STATUS hal_i2c_wake(ATCAIface iface)
 {
     // 2. Send NULL buffer to address 0x0 (NACK)
-    char emptybuff[1] = {0};
+    uint8_t emptybuff[1] = {0};
     int r = I2cMcuWriteBuffer((I2c_t *)NULL, 0x00, 0, emptybuff, (size_t)0);
 
     // 3. Wait for wake_delay
-    atca_delay_ms(1.5);
+    atca_delay_us(iface->mIfaceCFG->wake_delay);
 
-    char rx_buffer[4] = {0};
+    uint8_t rx_buffer[4] = {0};
 
     // 4. Read from normal slave_address
     r = -1;
-    int retries = 20;
+    int retries = iface->mIfaceCFG->rx_retries;
     while (--retries > 0 && r != 1)
     {
-        r = I2cMcuReadBuffer((I2c_t *)NULL, 0x59, 0, rx_buffer, 4);
-        // r = hal_data->i2c->read(hal_data->slave_address, rx_buffer, 4);
+        r = I2cMcuReadBuffer((I2c_t *)NULL, iface->mIfaceCFG->atcai2c.slave_address, 0, rx_buffer, 4);
     }
 
     // 5. Set frequency back to requested one
@@ -236,15 +233,12 @@ ATCA_STATUS hal_i2c_wake(ATCAIface iface)
 
     if (memcmp(rx_buffer, expected_response, 4) == 0)
     {
-        // tr_debug("wake successful");
         return ATCA_SUCCESS;
     }
     if (memcmp(rx_buffer, selftest_fail_resp, 4) == 0)
     {
-        //tr_warn("wake selftest error");
         return ATCA_STATUS_SELFTEST_ERROR;
     }
-    //tr_warn("wake failed");
     return ATCA_WAKE_FAILED;
 }
 
@@ -255,8 +249,8 @@ ATCA_STATUS hal_i2c_wake(ATCAIface iface)
 
 ATCA_STATUS hal_i2c_idle(ATCAIface iface)
 {
-    char buffer[1] = { 0x2 }; // idle word address value 
-    I2cMcuWriteBuffer((I2c_t*)NULL, 0x59,0, buffer, (size_t)1); 
+    uint8_t buffer[1] = { 0x2 }; // idle word address value 
+    I2cMcuWriteBuffer((I2c_t*)NULL, iface->mIfaceCFG->atcai2c.slave_address,0, buffer, (size_t)1); 
     return ATCA_SUCCESS;
 }
 
@@ -267,8 +261,8 @@ ATCA_STATUS hal_i2c_idle(ATCAIface iface)
 
 ATCA_STATUS hal_i2c_sleep(ATCAIface iface)
 {
-    char buffer[1] = { 0x1 };  // sleep word address value 
-    I2cMcuWriteBuffer((I2c_t*)NULL, 0x59,0, buffer, (size_t)1); 
+    uint8_t buffer[1] = { 0x1 };  // sleep word address value 
+    I2cMcuWriteBuffer((I2c_t*)NULL, iface->mIfaceCFG->atcai2c.slave_address,0, buffer, (size_t)1); 
     return ATCA_SUCCESS;
 }
 

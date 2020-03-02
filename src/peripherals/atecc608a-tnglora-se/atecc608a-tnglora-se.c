@@ -324,12 +324,12 @@ SecureElementStatus_t SecureElementInit(SecureElementNvmEvent seNvmCtxChanged)
     SeNvmCtx.KeyList[itr++].KeyBlockIndex = TNGLORA_REMAINING_KEYS_BLOCK_INDEX;
 
     atecc608_i2c_config.iface_type = ATCA_I2C_IFACE;
-    atecc608_i2c_config.atcai2c.baud = 100000U;
-    atecc608_i2c_config.atcai2c.bus = 2U;
-    atecc608_i2c_config.atcai2c.slave_address = 0x59;
+    atecc608_i2c_config.atcai2c.baud = ATCA_HAL_ATECC608A_I2C_FREQUENCY;
+    atecc608_i2c_config.atcai2c.bus = ATCA_HAL_ATECC608A_I2C_BUS_PINS;
+    atecc608_i2c_config.atcai2c.slave_address = ATCA_HAL_ATECC608A_I2C_ADDRESS;
     atecc608_i2c_config.devtype = ATECC608A;
-    atecc608_i2c_config.rx_retries = 20;
-    atecc608_i2c_config.wake_delay = 1500U;
+    atecc608_i2c_config.rx_retries = ATCA_HAL_ATECC608A_I2C_RX_RETRIES;
+    atecc608_i2c_config.wake_delay = ATCA_HAL_ATECC608A_I2C_WAKEUP_DELAY;
 
     if (atcab_init(&atecc608_i2c_config) != ATCA_SUCCESS)
     {
