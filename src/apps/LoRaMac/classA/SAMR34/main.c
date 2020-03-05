@@ -1159,12 +1159,6 @@ int main( void )
                 {
                     printf( "-%02X", mibReq.Param.JoinEui[i] );
                 }
-                printf( "\r\n" );
-                printf( "AppKey      : %02X", NwkKey[0] );
-                for( int i = 1; i < 16; i++ )
-                {
-                    printf( " %02X", NwkKey[i] );
-                }
                 printf( "\n\r\n" );
 #if( OVER_THE_AIR_ACTIVATION == 0 )
                 printf( "###### ===== JOINED ==== ######\r\n" );
